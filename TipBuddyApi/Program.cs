@@ -1,5 +1,7 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using TipBuddyApi.Configuration;
 using TipBuddyApi.Contracts;
 using TipBuddyApi.Data;
 using TipBuddyApi.Repository;
@@ -21,11 +23,15 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Logger
 builder.Host.UseSerilog((context, loggerConfig) =>
 {
     loggerConfig.WriteTo.Console() //write to console
     .ReadFrom.Configuration(context.Configuration); //read config from addsettings.json
 });
+
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(MapperConfig));
 
 // Repositories
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
