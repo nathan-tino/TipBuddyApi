@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using TipBuddyApi.Contracts;
 using TipBuddyApi.Data;
+using TipBuddyApi.Repository;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +26,10 @@ builder.Host.UseSerilog((context, loggerConfig) =>
     loggerConfig.WriteTo.Console() //write to console
     .ReadFrom.Configuration(context.Configuration); //read config from addsettings.json
 });
+
+// Repositories
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<IShiftsRepository, ShiftsRepository>();
 
 var app = builder.Build();
 
