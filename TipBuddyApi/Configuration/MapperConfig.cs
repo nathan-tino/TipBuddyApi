@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using TipBuddyApi.Data;
+using TipBuddyApi.Models.Shift;
 
 namespace TipBuddyApi.Configuration
 {
@@ -7,7 +8,9 @@ namespace TipBuddyApi.Configuration
     {
         public MapperConfig()
         {
-            CreateMap<Shift, Shift>();
+            CreateMap<CreateShiftDto, Shift>().ReverseMap();
+            CreateMap<UpdateShiftDto, Shift>().ReverseMap();
+            CreateMap<GetShiftDto, Shift>().ReverseMap();
         }
     }
 }

@@ -1,0 +1,17 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace TipBuddyApi.Models.Shift
+{
+    public class BaseShiftDto
+    {
+        [Required]
+        public DateTime Date { get; set; }
+
+        [Required]
+        public double CreditTips { get; set; }
+
+        public double CashTips { get; set; }
+        public double Tipout { get; set; }
+        public int? HoursWorked { get; set; }
+    }
+}

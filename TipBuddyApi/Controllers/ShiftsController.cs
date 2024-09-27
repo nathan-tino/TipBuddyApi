@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using AutoMapper;
-using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TipBuddyApi.Contracts;
 using TipBuddyApi.Data;
+using TipBuddyApi.Models.Shift;
 
 namespace TipBuddyApi.Controllers
 {
@@ -26,9 +22,10 @@ namespace TipBuddyApi.Controllers
 
         // GET: api/Shifts
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Shift>>> GetShifts()
+        public async Task<ActionResult<IEnumerable<GetShiftDto>>> GetShifts()
         {
-            return await _shiftsRepository.GetAllAsync();
+            var shifts = await _shiftsRepository.GetAllAsync();
+            return _mapper.Map<List<GetShiftDto>>(shifts);
         }
 
         // GET: api/Shifts/5
@@ -48,28 +45,24 @@ namespace TipBuddyApi.Controllers
         // PUT: api/Shifts/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutShift(int id, Shift shift)
+        public async Task<IActionResult> PutShift(int id, UpdateShiftDto updateShiftDto)
         {
-            if (id != shift.Id)
+            if (id != updateShiftDto.Id)
             {
                 return BadRequest();
             }
 
-            if (await _shiftsRepository.GetAsync(id) == null)
+            var shift = await _shiftsRepository.GetAsync(id);
+            if (shift == null)
             {
                 return NotFound();
             }
 
-            var shiftToUpdate = await _shiftsRepository.GetAsync(id);
-            shiftToUpdate.Tipout = shift.Tipout;
-            shiftToUpdate.HoursWorked = shift.HoursWorked;
-            shiftToUpdate.CashTips = shift.CashTips;
-            shiftToUpdate.CreditTips = shift.CreditTips;
-            shiftToUpdate.Date = shift.Date;
+            _mapper.Map(updateShiftDto, shift);
 
             try
             {
-                await _shiftsRepository.UpdateAsync(shiftToUpdate);
+                await _shiftsRepository.UpdateAsync(shift);
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -89,8 +82,9 @@ namespace TipBuddyApi.Controllers
         // POST: api/Shifts
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Shift>> PostShift(Shift shift)
+        public async Task<ActionResult<Shift>> PostShift(CreateShiftDto createShiftDto)
         {
+            var shift = _mapper.Map<Shift>(createShiftDto);
             await _shiftsRepository.AddAsync(shift);
 
             return CreatedAtAction(nameof(GetShift), new { id = shift.Id }, shift);
