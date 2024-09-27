@@ -23,6 +23,15 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Allow requests from outside of host machine; Third-party access
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        b => b.AllowAnyHeader()
+             .AllowAnyOrigin()
+             .AllowAnyMethod());
+});
+
 // Logger
 builder.Host.UseSerilog((context, loggerConfig) =>
 {
@@ -50,6 +59,9 @@ if (app.Environment.IsDevelopment())
 app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
+
+// Allow requests from outside of host machine; Third-party access
+app.UseCors("AllowAll");
 
 app.MapControllers();
 
