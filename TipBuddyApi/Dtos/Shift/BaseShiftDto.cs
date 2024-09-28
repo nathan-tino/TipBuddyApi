@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace TipBuddyApi.Models.Shift
+namespace TipBuddyApi.Dtos.Shift
 {
     public class BaseShiftDto
     {

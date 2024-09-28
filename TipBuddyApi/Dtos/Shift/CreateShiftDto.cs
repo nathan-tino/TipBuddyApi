@@ -1,4 +1,4 @@
-﻿namespace TipBuddyApi.Models.Shift
+﻿namespace TipBuddyApi.Dtos.Shift
 {
     public class CreateShiftDto : BaseShiftDto
     {

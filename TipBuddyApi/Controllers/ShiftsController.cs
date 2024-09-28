@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TipBuddyApi.Contracts;
 using TipBuddyApi.Data;
-using TipBuddyApi.Models.Shift;
+using TipBuddyApi.Dtos.Shift;
 
 namespace TipBuddyApi.Controllers
 {

@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using TipBuddyApi.Data;
-using TipBuddyApi.Models.Shift;
+using TipBuddyApi.Dtos.Shift;
 
 namespace TipBuddyApi.Configuration
 {
