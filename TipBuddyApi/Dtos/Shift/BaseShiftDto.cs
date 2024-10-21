@@ -2,7 +2,7 @@
 
 namespace TipBuddyApi.Dtos.Shift
 {
-    public class BaseShiftDto
+    public abstract class BaseShiftDto
     {
         [Required]
         public DateTime Date { get; set; }

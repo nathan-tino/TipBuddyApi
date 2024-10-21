@@ -22,9 +22,9 @@ namespace TipBuddyApi.Controllers
 
         // GET: api/Shifts
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<GetShiftDto>>> GetShifts()
+        public async Task<ActionResult<IEnumerable<GetShiftDto>>> GetShifts(DateTime? startDate = null, DateTime? endDate = null)
         {
-            var shifts = await _shiftsRepository.GetAllAsync();
+            var shifts = await _shiftsRepository.GetShiftsAsync(startDate, endDate);
             return _mapper.Map<List<GetShiftDto>>(shifts);
         }
 
