@@ -10,5 +10,14 @@ namespace TipBuddyApi.Data
         {
             
         }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Shift>()
+                .Property(s => s.Date)
+                .HasColumnType("datetime2(0)");
+        }
     }
 }
