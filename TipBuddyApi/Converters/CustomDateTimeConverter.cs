@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -18,12 +19,16 @@ namespace TipBuddyApi.Converters
 
             return dateString is null
                 ? throw new JsonException("Date string cannot be null.")
-                : DateTime.Parse(dateString).ToUniversalTime();
+                : DateTime.Parse(
+                    dateString,
+                    null,
+                    DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal)
+                .ToUniversalTime();
         }
 
         public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
         {
-            writer.WriteStringValue(value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+            writer.WriteStringValue(value.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
         }
     }
 }
