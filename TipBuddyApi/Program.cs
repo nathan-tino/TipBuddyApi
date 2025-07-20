@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using TipBuddyApi.Configuration;
 using TipBuddyApi.Contracts;
+using TipBuddyApi.Converters;
 using TipBuddyApi.Data;
 using TipBuddyApi.Repository;
 
@@ -17,7 +18,11 @@ builder.Services.AddDbContext<TipBuddyDbContext>(options =>
     options.UseSqlServer(connectionString);
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new CustomDateTimeConverter());
+    });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
