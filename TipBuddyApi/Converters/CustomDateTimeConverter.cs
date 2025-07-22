@@ -17,13 +17,20 @@ namespace TipBuddyApi.Converters
         {
             var dateString = reader.GetString();
 
-            return dateString is null
-                ? throw new JsonException("Date string cannot be null.")
-                : DateTime.Parse(
-                    dateString,
-                    null,
-                    DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal)
-                .ToUniversalTime();
+            try
+            {
+                return dateString is null
+                        ? throw new JsonException("Date string cannot be null.")
+                        : DateTime.Parse(
+                            dateString,
+                            null,
+                            DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal)
+                        .ToUniversalTime();
+            }
+            catch (FormatException)
+            {
+                throw new JsonException("Incorrect date format. Desired format: yyyy-MM-ddTHH:mm:ss.fffZ");
+            }
         }
 
         public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
