@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TipBuddyApi.Data;
 
@@ -11,9 +12,11 @@ using TipBuddyApi.Data;
 namespace TipBuddyApi.Migrations
 {
     [DbContext(typeof(TipBuddyDbContext))]
-    partial class TipBuddyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250731003056_ChangeDateToDateTimeOffset")]
+    partial class ChangeDateToDateTimeOffset
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

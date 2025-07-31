@@ -17,7 +17,7 @@ namespace TipBuddyApi.Data
 
             modelBuilder.Entity<Shift>()
                 .Property(s => s.Date)
-                .HasColumnType("datetime2(0)");
+                .HasColumnType("datetimeoffset(0)");
         }
     }
 }

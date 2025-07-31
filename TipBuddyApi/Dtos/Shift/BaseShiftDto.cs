@@ -5,7 +5,7 @@ namespace TipBuddyApi.Dtos.Shift
     public abstract class BaseShiftDto
     {
         [Required]
-        public DateTime Date { get; set; }
+        public DateTimeOffset Date { get; set; }
 
         [Required]
         public double CreditTips { get; set; }

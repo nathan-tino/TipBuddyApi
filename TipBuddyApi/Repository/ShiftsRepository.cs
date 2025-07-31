@@ -36,7 +36,7 @@ namespace TipBuddyApi.Repository
 
             if (endDate.HasValue)
             {
-                query = query.Where(s => s.Date <= endDate.Value);
+                query = query.Where(s => s.Date < endDate.Value);
             }
 
             return await query.ToListAsync();
