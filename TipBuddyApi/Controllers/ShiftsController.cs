@@ -82,12 +82,12 @@ namespace TipBuddyApi.Controllers
         // POST: api/Shifts
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Shift>> PostShift(CreateShiftDto createShiftDto)
+        public async Task<ActionResult<GetShiftDto>> PostShift(CreateShiftDto createShiftDto)
         {
             var shift = _mapper.Map<Shift>(createShiftDto);
             await _shiftsRepository.AddAsync(shift);
 
-            return CreatedAtAction(nameof(GetShift), new { id = shift.Id }, shift);
+            return CreatedAtAction(nameof(GetShift), new { id = shift.Id }, _mapper.Map<GetShiftDto>(shift));
         }
 
         // DELETE: api/Shifts/5
