@@ -9,3 +9,12 @@
 - When configuring EF Core models, set the SQL column type to `datetimeoffset(0)` for all `DateTimeOffset` properties, unless a different precision is required.
 - Example:
 - modelBuilder.Entity<MyEntity>().Property(e => e.MyDate).HasColumnType("datetimeoffset(0)");
+
+## ID Column Best Practices
+
+- All ID columns for entities (including User and Shift) should use `nvarchar(36)` in the database to match GUID string length.
+- Update future migrations and models accordingly to ensure consistency and optimal storage.
+- When creating tables, ensure all ID columns and foreign keys referencing IDs use `nvarchar(36)`.
+- Example:
+  - modelBuilder.Entity<MyEntity>().Property(e => e.Id).HasMaxLength(36).HasColumnType("nvarchar(36)");
+  - migrationBuilder.CreateTable(... Id = table.Column<string>(type: "nvarchar(36)", ...

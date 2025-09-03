@@ -1,16 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace TipBuddyApi.Data
 {
-    public class TipBuddyDbContext : DbContext
+    // This class uses "PrimaryConstructor" feature of C# 9.0 to simplify the DbContext constructor
+    public class TipBuddyDbContext(DbContextOptions<TipBuddyDbContext> options) : IdentityDbContext<User>(options)
     {
         public DbSet<Shift> Shifts { get; set; }
+
+        //TODO: Switch to use IdentityUser for authentication and authorization
         public DbSet<User> Users { get; set; }
-
-        public TipBuddyDbContext(DbContextOptions options) : base(options)
-        {
-
-        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
