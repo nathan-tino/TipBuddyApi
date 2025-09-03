@@ -122,7 +122,7 @@ namespace TipBuddyApi.Migrations
             );
 
             // Rename the original Shifts table to Shifts_Old
-            migrationBuilder.Sql("EXEC sp_rename 'Shifts', 'Shifts_Old'");
+            migrationBuilder.RenameTable(name: "Shifts", newName: "Shifts_Old");
 
             // Create the new Shifts table
             migrationBuilder.CreateTable(
@@ -393,7 +393,7 @@ namespace TipBuddyApi.Migrations
             );
 
             // Rename new Shifts table to Shifts_New
-            migrationBuilder.Sql("EXEC sp_rename 'Shifts', 'Shifts_New'");
+            migrationBuilder.RenameTable(name: "Shifts", newName: "Shifts_New");
 
             // Recreate original Users table
             migrationBuilder.CreateTable(
