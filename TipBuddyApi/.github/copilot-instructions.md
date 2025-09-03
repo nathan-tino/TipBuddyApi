@@ -18,3 +18,7 @@
 - Example:
   - modelBuilder.Entity<MyEntity>().Property(e => e.Id).HasMaxLength(36).HasColumnType("nvarchar(36)");
   - migrationBuilder.CreateTable(... Id = table.Column<string>(type: "nvarchar(36)", ...
+
+## Migration Best Practices
+
+- Always use the migrationBuilder.RenameXYZ methods (e.g., RenameTable, RenameColumn) for renaming tables or columns in migrations instead of using raw SQL statements like EXEC sp_rename. This ensures type safety and better compatibility with Entity Framework Core.
