@@ -45,7 +45,10 @@ builder.Host.UseSerilog((context, loggerConfig) =>
 });
 
 // AutoMapper
-builder.Services.AddAutoMapper(typeof(MapperConfig));
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddProfile<MapperConfig>();
+});
 
 // Repositories
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
