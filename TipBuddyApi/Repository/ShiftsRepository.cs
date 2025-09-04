@@ -16,18 +16,19 @@ namespace TipBuddyApi.Repository
         /// <summary>
         /// Retrieves a list of shifts, optionally filtered by a date range.
         /// </summary>
+        /// <param name="userId">The ID of the user whose shifts are to be retrieved.</param>
         /// <param name="startDate">Optional. Filters shifts to those with a date on or after this value.</param>
         /// <param name="endDate">Optional. Filters shifts to those with a date on or before this value.</param>
         /// <returns>A task who's result contains a list of shifts matching the specified filters.</returns>
         /// <exception cref="ArgumentException">Thrown if <paramref name="startDate"/> is later than <paramref name="endDate"/>.</exception>
-        public async Task<List<Shift>> GetShiftsAsync(DateTime? startDate = null, DateTime? endDate = null)
+        public async Task<List<Shift>> GetShiftsAsync(string userId, DateTime? startDate = null, DateTime? endDate = null)
         {
             if (startDate.HasValue && endDate.HasValue && startDate > endDate)
             {
                 throw new ArgumentException("The start date cannot be after the end date.");
             }
 
-            IQueryable<Shift> query = _context.Shifts;
+            IQueryable<Shift> query = _context.Shifts.Where(s => s.UserId == userId);
 
             if (startDate.HasValue)
             {

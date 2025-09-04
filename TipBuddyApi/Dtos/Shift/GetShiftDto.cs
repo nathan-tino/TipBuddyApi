@@ -5,6 +5,6 @@ namespace TipBuddyApi.Dtos.Shift
     public class GetShiftDto : BaseShiftDto
     {
         [Required]
-        public int Id { get; set; }
+        public required string Id { get; set; }
     }
 }

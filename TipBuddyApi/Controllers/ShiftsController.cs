@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using TipBuddyApi.Contracts;
 using TipBuddyApi.Data;
 using TipBuddyApi.Dtos.Shift;
@@ -26,13 +27,19 @@ namespace TipBuddyApi.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<GetShiftDto>>> GetShifts(DateTime? startDate = null, DateTime? endDate = null)
         {
-            var shifts = await _shiftsRepository.GetShiftsAsync(startDate, endDate);
+            var userId = GetUserId();
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var shifts = await _shiftsRepository.GetShiftsAsync(userId, startDate, endDate);
             return _mapper.Map<List<GetShiftDto>>(shifts);
         }
 
         // GET: api/Shifts/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Shift>> GetShift(int id)
+        public async Task<ActionResult<Shift>> GetShift(string id)
         {
             var shift = await _shiftsRepository.GetAsync(id);
 
@@ -47,9 +54,9 @@ namespace TipBuddyApi.Controllers
         // PUT: api/Shifts/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutShift(int id, UpdateShiftDto updateShiftDto)
+        public async Task<IActionResult> PutShift(string id, UpdateShiftDto updateShiftDto)
         {
-            if (id != updateShiftDto.Id)
+            if (!id.Equals(updateShiftDto.Id))
             {
                 return BadRequest();
             }
@@ -94,7 +101,7 @@ namespace TipBuddyApi.Controllers
 
         // DELETE: api/Shifts/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteShift(int id)
+        public async Task<IActionResult> DeleteShift(string id)
         {
             if (!await ShiftExists(id))
             {
@@ -106,9 +113,14 @@ namespace TipBuddyApi.Controllers
             return NoContent();
         }
 
-        private Task<bool> ShiftExists(int id)
+        private Task<bool> ShiftExists(string id)
         {
             return _shiftsRepository.Exists(id);
+        }
+
+        private string? GetUserId()
+        {
+            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
     }
 }

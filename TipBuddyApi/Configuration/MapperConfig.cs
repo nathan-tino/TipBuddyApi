@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using TipBuddyApi.Data;
+using TipBuddyApi.Dtos.Auth;
 using TipBuddyApi.Dtos.Shift;
 
 namespace TipBuddyApi.Configuration
@@ -11,6 +12,7 @@ namespace TipBuddyApi.Configuration
             CreateMap<CreateShiftDto, Shift>().ReverseMap();
             CreateMap<UpdateShiftDto, Shift>().ReverseMap();
             CreateMap<GetShiftDto, Shift>().ReverseMap();
+            CreateMap<RegisterDto, User>().ReverseMap();
         }
     }
 }

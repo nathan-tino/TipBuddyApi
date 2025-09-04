@@ -23,8 +23,9 @@ builder.Services.AddDbContext<TipBuddyDbContext>(options =>
 });
 
 // Add Identity
-builder.Services.AddIdentity<IdentityUser, IdentityRole>()
-    .AddEntityFrameworkStores<TipBuddyDbContext>();
+builder.Services.AddIdentity<User, IdentityRole>()
+    .AddEntityFrameworkStores<TipBuddyDbContext>()
+    .AddDefaultTokenProviders();
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(options =>
