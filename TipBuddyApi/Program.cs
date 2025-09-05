@@ -57,13 +57,17 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Allow requests from outside of host machine; Third-party access
+// Add CORS policy from configuration
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll",
-        b => b.AllowAnyHeader()
-             .AllowAnyOrigin()
-             .AllowAnyMethod());
+    options.AddPolicy("AllowAngularApp", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
 });
 
 // Logger
@@ -85,6 +89,20 @@ builder.Services.AddScoped<IShiftsRepository, ShiftsRepository>();
 
 var app = builder.Build();
 
+// Extract JWT from cookie and set Authorization header
+app.Use(async (context, next) =>
+{
+    var token = context.Request.Cookies["access_token"];
+    if (!string.IsNullOrEmpty(token))
+    {
+        context.Request.Headers["Authorization"] = $"Bearer {token}";
+    }
+    await next();
+});
+
+// Use CORS policy
+app.UseCors("AllowAngularApp");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -99,9 +117,6 @@ if (app.Environment.IsDevelopment())
 app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
-
-// Allow requests from outside of host machine; Third-party access
-app.UseCors("AllowAll");
 
 app.MapControllers();
 

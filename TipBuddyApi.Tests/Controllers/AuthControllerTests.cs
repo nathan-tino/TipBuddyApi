@@ -1,7 +1,10 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Moq;
 using TipBuddyApi.Controllers;
 using TipBuddyApi.Data;
@@ -14,6 +17,7 @@ namespace TipBuddyApi.Tests.Controllers
         private readonly Mock<UserManager<User>> _userManagerMock;
         private readonly Mock<IConfiguration> _configMock;
         private readonly Mock<IMapper> _mapperMock;
+        private readonly Mock<IWebHostEnvironment> _envMock;
         private readonly AuthController _controller;
 
         public AuthControllerTests()
@@ -22,7 +26,17 @@ namespace TipBuddyApi.Tests.Controllers
             _userManagerMock = new Mock<UserManager<User>>(store.Object, null, null, null, null, null, null, null, null);
             _configMock = new Mock<IConfiguration>();
             _mapperMock = new Mock<IMapper>();
-            _controller = new AuthController(_userManagerMock.Object, _configMock.Object, _mapperMock.Object);
+
+            _envMock = new Mock<IWebHostEnvironment>();
+            _envMock.Setup(e => e.EnvironmentName).Returns("Development");
+
+            _controller = new AuthController(_userManagerMock.Object, _configMock.Object, _mapperMock.Object, _envMock.Object);
+
+            var httpContext = new DefaultHttpContext();
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = httpContext
+            };
         }
 
         [Fact]
@@ -88,7 +102,7 @@ namespace TipBuddyApi.Tests.Controllers
             var result = await _controller.Login(dto);
             var ok = Assert.IsType<OkObjectResult>(result);
             Assert.NotNull(ok.Value);
-            Assert.Contains("token", ok.Value.ToString());
+            Assert.Contains("message", ok.Value.ToString());
         }
     }
 }

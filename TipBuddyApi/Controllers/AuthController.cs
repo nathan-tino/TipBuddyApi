@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Hosting;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -12,7 +13,7 @@ namespace TipBuddyApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController(UserManager<User> userManager, IConfiguration configuration, IMapper mapper) : ControllerBase
+    public class AuthController(UserManager<User> userManager, IConfiguration configuration, IMapper mapper, IWebHostEnvironment env) : ControllerBase
     {
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
@@ -35,6 +36,27 @@ namespace TipBuddyApi.Controllers
                 return Unauthorized();
             }
 
+            var accessToken = GenerateJwtToken(user);
+
+            // Set access token as HttpOnly cookie for HTTPS frontend
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true, // Always true for HTTPS
+                SameSite = SameSiteMode.Lax,
+                Path = "/",
+                Domain = env.IsDevelopment() ? "localhost" : "your-production-domain.com", // TODO: Adjust domain as needed
+                Expires = DateTimeOffset.Now.AddMinutes(15)
+            };
+            Response.Cookies.Append("access_token", accessToken, cookieOptions);
+
+            // TODO: Implement refresh token support in the future for better session management
+
+            return Ok(new { message = "Login successful" });
+        }
+
+        private string GenerateJwtToken(User user)
+        {
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
@@ -49,10 +71,10 @@ namespace TipBuddyApi.Controllers
                 issuer: configuration["Jwt:Issuer"],
                 audience: configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddHours(1),
+                expires: DateTime.Now.AddMinutes(15),
                 signingCredentials: creds);
 
-            return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }
