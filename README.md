@@ -1,6 +1,60 @@
-This is the back-end portion of the TipBuddy web application. This is a C# .NET Core project using Code-First Entity Framework to model the database.
+# TipBuddyApi
+
+This is the back-end portion of the TipBuddy web application. It is built with C# and .NET 9, using Entity Framework Core for data access.
+
+## Features
+- User authentication and registration
+- Shift management (CRUD operations)
+- Custom JSON date handling
+- Repository pattern for data access
+- AutoMapper for DTO mapping
+- JWT authentication
+- Swagger/OpenAPI documentation
+
+## Projects
+- **TipBuddyApi**: Main API project
+- **TipBuddyApi.Tests**: Unit tests for API logic
+
+## Getting Started
+1. **Restore NuGet packages**
+   - Use the Package Manager Console:
+     ```powershell
+     Install-Package <PackageName>
+     ```
+2. **Build the solution**
+   - Run:
+     ```powershell
+     dotnet build
+     ```
+3. **Run the API**
+   - From the API project directory:
+     ```powershell
+     dotnet run
+     ```
+4. **Run tests**
+   - From the test project directory:
+     ```powershell
+     dotnet test
+     ```
+
+## NuGet Packages
+For installing NuGet packages, use the Package Manager Console command:
+```
+Install-Package <PackageName>
+```
+This is the default method for package installation in this project.
+
+## Code Coverage
+To view code coverage, install the `coverlet.collector` package and run:
+```
+dotnet test TipBuddyApi.Tests --collect:"XPlat Code Coverage"
+```
 
 ## Conventions
+- **Dates**: All dates are stored in UTC format. Convert to local time on the client side.
 
-### Dates
-All dates stored in the database are in UTC format. Ensure that any date/time fields in the database are handled and stored in UTC, and any conversion to local times should happen on the client side.
+## Contributing
+- Please follow the guidance in this README for package management and development practices.
+
+## License
+This project is licensed under the MIT License.

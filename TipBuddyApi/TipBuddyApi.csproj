@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <None Include=".github\copilot-instructions.md" />
+    <None Include=".github\nuget-guidance.md" />
   </ItemGroup>
 
 </Project>

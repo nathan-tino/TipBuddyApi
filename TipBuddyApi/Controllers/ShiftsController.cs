@@ -120,7 +120,7 @@ namespace TipBuddyApi.Controllers
 
         private string? GetUserId()
         {
-            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
     }
 }
