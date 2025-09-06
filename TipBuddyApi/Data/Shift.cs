@@ -6,7 +6,7 @@ namespace TipBuddyApi.Data
     public class Shift
     {
         [Key]
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Id { get; set; }
 
         [Required]
         public DateTimeOffset Date { get; set; }
@@ -23,5 +23,10 @@ namespace TipBuddyApi.Data
         [ForeignKey(nameof(User))]
         public required string UserId { get; set; }
         public User User { get; set; } = null!;
+
+        public Shift()
+        {
+            Id = Guid.NewGuid().ToString();
+        }
     }
 }
