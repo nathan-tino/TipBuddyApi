@@ -3,7 +3,17 @@ Write-Host "Running tests and collecting coverage..."
 dotnet test TipBuddyApi.Tests --collect:"XPlat Code Coverage"
 
 # Finds the latest coverage.cobertura.xml and runs ReportGenerator
-$reportGeneratorPath = "$env:USERPROFILE\.nuget\packages\reportgenerator\5.4.12\tools\net9.0\ReportGenerator.dll"
+# Dynamically find the latest installed ReportGenerator version
+$reportGeneratorBase = "$env:USERPROFILE\.nuget\packages\reportgenerator"
+$latestVersionDir = Get-ChildItem -Path $reportGeneratorBase -Directory | `
+    Where-Object { $_.Name -match '^\d+\.\d+\.\d+.*$' } | `
+    Sort-Object { [Version]$_.Name } -Descending | `
+    Select-Object -First 1
+if (-not $latestVersionDir) {
+    Write-Host "ReportGenerator is not installed in $reportGeneratorBase. Please install the NuGet package."
+    exit 1
+}
+$reportGeneratorPath = Join-Path $latestVersionDir.FullName "tools\net9.0\ReportGenerator.dll"
 $testResultsDir = "TipBuddyApi.Tests\TestResults"
 $coverageFile = Get-ChildItem -Path $testResultsDir -Recurse -Filter coverage.cobertura.xml |
     Sort-Object LastWriteTime -Descending |
