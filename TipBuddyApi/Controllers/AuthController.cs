@@ -45,7 +45,7 @@ namespace TipBuddyApi.Controllers
                 Secure = true, // Always true for HTTPS
                 SameSite = SameSiteMode.Lax,
                 Path = "/",
-                Domain = env.IsDevelopment() ? "localhost" : "your-production-domain.com", // TODO: Adjust domain as needed
+                Domain = env.IsDevelopment() ? "localhost" : configuration["CookieDomain"], // Domain is now configurable
                 Expires = DateTimeOffset.Now.AddMinutes(15)
             };
             Response.Cookies.Append("access_token", accessToken, cookieOptions);

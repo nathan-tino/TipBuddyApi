@@ -9,7 +9,6 @@ namespace TipBuddyApi.Data
     {
         public DbSet<Shift> Shifts { get; set; }
 
-        //TODO: Switch to use IdentityUser for authentication and authorization
         public DbSet<User> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
