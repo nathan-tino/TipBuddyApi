@@ -1,8 +1,9 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Hosting;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -53,6 +54,13 @@ namespace TipBuddyApi.Controllers
             // TODO: Implement refresh token support in the future for better session management
 
             return Ok(new { message = "Login successful" });
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync();
+            return Ok(new { message = "Logged out successfully." });
         }
 
         private string GenerateJwtToken(User user)
