@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -45,6 +46,7 @@ namespace TipBuddyApi.Controllers
             return Ok(new { message = "Login successful" });
         }
 
+        [Authorize]
         [HttpPost("logout")]
         public IActionResult Logout()
         {
