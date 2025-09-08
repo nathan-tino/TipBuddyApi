@@ -1,6 +1,4 @@
 using AutoMapper;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -39,16 +37,7 @@ namespace TipBuddyApi.Controllers
 
             var accessToken = GenerateJwtToken(user);
 
-            // Set access token as HttpOnly cookie for HTTPS frontend
-            var cookieOptions = new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true, // Always true for HTTPS
-                SameSite = SameSiteMode.Lax,
-                Path = "/",
-                Domain = env.IsDevelopment() ? "localhost" : configuration["CookieDomain"], // Domain is now configurable
-                Expires = DateTimeOffset.Now.AddMinutes(15)
-            };
+            var cookieOptions = GetAccessTokenCookieOptions(DateTimeOffset.Now.AddMinutes(15));
             Response.Cookies.Append("access_token", accessToken, cookieOptions);
 
             // TODO: Implement refresh token support in the future for better session management
@@ -57,10 +46,26 @@ namespace TipBuddyApi.Controllers
         }
 
         [HttpPost("logout")]
-        public async Task<IActionResult> Logout()
+        public IActionResult Logout()
         {
-            await HttpContext.SignOutAsync();
-            return Ok(new { message = "Logged out successfully." });
+            // Remove the JWT cookie by setting its expiration to the past
+            var cookieOptions = GetAccessTokenCookieOptions(DateTimeOffset.UnixEpoch);
+            Response.Cookies.Append("access_token", "", cookieOptions);
+
+            return Ok(new { message = "Logout successful" });
+        }
+
+        private CookieOptions GetAccessTokenCookieOptions(DateTimeOffset expires)
+        {
+            return new CookieOptions
+            {
+                HttpOnly = true, // Set access token as HttpOnly cookie for HTTPS frontend
+                Secure = true,
+                SameSite = SameSiteMode.Lax,
+                Path = "/",
+                Domain = env.IsDevelopment() ? "localhost" : configuration["CookieDomain"],
+                Expires = expires
+            };
         }
 
         private string GenerateJwtToken(User user)
