@@ -50,6 +50,15 @@ To view code coverage, install the `coverlet.collector` package and run:
 dotnet test TipBuddyApi.Tests --collect:"XPlat Code Coverage"
 ```
 
+### Generate Coverage Report
+To generate a coverage report, run the following PowerShell script from your solution directory:
+
+```powershell
+./generate-coverage-report.ps1
+```
+
+This will execute the script and produce a coverage report as defined in the file.
+
 ## Conventions
 - **Dates**: All dates are stored in UTC format. Convert to local time on the client side.
 
