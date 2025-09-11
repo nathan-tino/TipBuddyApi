@@ -94,6 +94,8 @@ namespace TipBuddyApi.Controllers
         public async Task<ActionResult<GetShiftDto>> PostShift(CreateShiftDto createShiftDto)
         {
             var shift = _mapper.Map<Shift>(createShiftDto);
+            shift.UserId = GetUserId() ?? throw new UnauthorizedAccessException();
+
             await _shiftsRepository.AddAsync(shift);
 
             return CreatedAtAction(nameof(GetShift), new { id = shift.Id }, _mapper.Map<GetShiftDto>(shift));
