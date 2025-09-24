@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Moq;
 using TipBuddyApi.Controllers;
+using TipBuddyApi.Contracts;
 using TipBuddyApi.Data;
 using TipBuddyApi.Dtos.Auth;
 
@@ -18,6 +19,7 @@ namespace TipBuddyApi.Tests.Controllers
         private readonly Mock<IConfiguration> _configMock;
         private readonly Mock<IMapper> _mapperMock;
         private readonly Mock<IWebHostEnvironment> _envMock;
+        private readonly Mock<IDemoDataSeeder> _demoDataSeederMock;
         private readonly AuthController _controller;
 
         public AuthControllerTests()
@@ -26,11 +28,12 @@ namespace TipBuddyApi.Tests.Controllers
             _userManagerMock = new Mock<UserManager<User>>(store.Object, null, null, null, null, null, null, null, null);
             _configMock = new Mock<IConfiguration>();
             _mapperMock = new Mock<IMapper>();
+            _demoDataSeederMock = new Mock<IDemoDataSeeder>();
 
             _envMock = new Mock<IWebHostEnvironment>();
             _envMock.Setup(e => e.EnvironmentName).Returns("Development");
 
-            _controller = new AuthController(_userManagerMock.Object, _configMock.Object, _mapperMock.Object, _envMock.Object);
+            _controller = new AuthController(_userManagerMock.Object, _configMock.Object, _mapperMock.Object, _envMock.Object, _demoDataSeederMock.Object);
 
             var httpContext = new DefaultHttpContext();
             _controller.ControllerContext = new ControllerContext
@@ -103,6 +106,61 @@ namespace TipBuddyApi.Tests.Controllers
             var ok = Assert.IsType<OkObjectResult>(result);
             Assert.NotNull(ok.Value);
             Assert.Contains("message", ok.Value.ToString());
+        }
+
+        [Fact]
+        public async Task DemoLogin_ReturnsOkWithToken_IfDemoUserExists()
+        {
+            var demoUser = new User { Id = "demo-id", Email = "demo@example.com", UserName = "demouser" };
+            _userManagerMock.Setup(m => m.FindByNameAsync("demouser")).ReturnsAsync(demoUser);
+            _configMock.Setup(c => c["Jwt:Key"]).Returns("supersecretkey12345678901234567890");
+            _configMock.Setup(c => c["Jwt:Issuer"]).Returns("issuer");
+            _configMock.Setup(c => c["Jwt:Audience"]).Returns("audience");
+
+            var result = await _controller.DemoLogin();
+            var ok = Assert.IsType<OkObjectResult>(result);
+            Assert.NotNull(ok.Value);
+            Assert.Contains("Demo login successful", ok.Value.ToString());
+        }
+
+        [Fact]
+        public async Task DemoLogin_SeedsAndReturnsOkWithToken_IfDemoUserNotFound()
+        {
+            var demoUser = new User { Id = "demo-id", Email = "demo@example.com", UserName = "demouser" };
+            
+            // First call returns null, second call (after seeding) returns the user
+            _userManagerMock.SetupSequence(m => m.FindByNameAsync("demouser"))
+                .ReturnsAsync((User)null)
+                .ReturnsAsync(demoUser);
+            
+            _demoDataSeederMock.Setup(s => s.SeedDemoDataAsync()).Returns(Task.CompletedTask);
+            _configMock.Setup(c => c["Jwt:Key"]).Returns("supersecretkey12345678901234567890");
+            _configMock.Setup(c => c["Jwt:Issuer"]).Returns("issuer");
+            _configMock.Setup(c => c["Jwt:Audience"]).Returns("audience");
+
+            var result = await _controller.DemoLogin();
+            var ok = Assert.IsType<OkObjectResult>(result);
+            Assert.NotNull(ok.Value);
+            Assert.Contains("Demo login successful", ok.Value.ToString());
+            
+            // Verify that seeding was called
+            _demoDataSeederMock.Verify(s => s.SeedDemoDataAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task DemoLogin_ReturnsBadRequest_IfSeedingFails()
+        {
+            // Both calls return null (seeding failed to create user)
+            _userManagerMock.Setup(m => m.FindByNameAsync("demouser")).ReturnsAsync((User)null);
+            _demoDataSeederMock.Setup(s => s.SeedDemoDataAsync()).Returns(Task.CompletedTask);
+
+            var result = await _controller.DemoLogin();
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.NotNull(badRequest.Value);
+            Assert.Contains("Failed to create demo user", badRequest.Value.ToString());
+            
+            // Verify that seeding was called
+            _demoDataSeederMock.Verify(s => s.SeedDemoDataAsync(), Times.Once);
         }
     }
 }

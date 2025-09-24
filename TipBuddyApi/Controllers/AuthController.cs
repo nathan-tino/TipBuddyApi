@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using TipBuddyApi.Contracts;
 using TipBuddyApi.Data;
 using TipBuddyApi.Dtos.Auth;
 
@@ -13,8 +14,10 @@ namespace TipBuddyApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController(UserManager<User> userManager, IConfiguration configuration, IMapper mapper, IWebHostEnvironment env) : ControllerBase
+    public class AuthController(UserManager<User> userManager, IConfiguration configuration, IMapper mapper, IWebHostEnvironment env, IDemoDataSeeder demoDataSeeder) : ControllerBase
     {
+        private const string DemoUserName = "demouser";
+
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
         {
@@ -44,6 +47,31 @@ namespace TipBuddyApi.Controllers
             // TODO: Implement refresh token support in the future for better session management
 
             return Ok(new { message = "Login successful" });
+        }
+
+        [HttpPost("demo")]
+        public async Task<IActionResult> DemoLogin()
+        {
+            var demoUser = await userManager.FindByNameAsync(DemoUserName);
+            if (demoUser == null)
+            {
+                // Seed demo data if demo user doesn't exist
+                await demoDataSeeder.SeedDemoDataAsync();
+                
+                // Try to find the demo user again after seeding
+                demoUser = await userManager.FindByNameAsync(DemoUserName);
+                if (demoUser == null)
+                {
+                    return BadRequest(new { message = "Failed to create demo user. Please try again." });
+                }
+            }
+
+            var accessToken = GenerateJwtToken(demoUser);
+
+            var cookieOptions = GetAccessTokenCookieOptions(DateTimeOffset.Now.AddMinutes(15));
+            Response.Cookies.Append("access_token", accessToken, cookieOptions);
+
+            return Ok(new { message = "Demo login successful" });
         }
 
         [Authorize]
