@@ -89,6 +89,7 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepositor
 builder.Services.AddScoped<IShiftsRepository, ShiftsRepository>();
 
 // Services
+builder.Services.AddScoped<ITimeZoneService, TimeZoneService>();
 builder.Services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
 
 var app = builder.Build();

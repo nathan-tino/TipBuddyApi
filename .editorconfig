@@ -1,0 +1,11 @@
+# Define symbols: private constants
+dotnet_naming_symbols.private_constants.applicable_kinds = field
+dotnet_naming_symbols.private_constants.required_modifiers = const, private
+
+# Define naming style: PascalCase
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+# Define naming rule
+dotnet_naming_rule.private_constants_pascal_case.symbols = private_constants
+dotnet_naming_rule.private_constants_pascal_case.style = pascal_case_style
+dotnet_naming_rule.private_constants_pascal_case.severity = warning

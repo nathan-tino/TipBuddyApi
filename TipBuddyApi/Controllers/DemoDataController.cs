@@ -21,5 +21,12 @@ namespace TipBuddyApi.Controllers
             await _demoDataSeeder.ResetDemoUserAsync();
             return Ok(new { message = "Demo data has been reset." });
         }
+
+        [HttpPost("reset-shifts")]
+        public async Task<IActionResult> ResetDemoShifts()
+        {
+            await _demoDataSeeder.ResetDemoUserShiftsAsync();
+            return Ok(new { message = "Demo user shifts have been reset." });
+        }
     }
 }

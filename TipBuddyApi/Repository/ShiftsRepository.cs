@@ -42,5 +42,19 @@ namespace TipBuddyApi.Repository
 
             return await query.ToListAsync();
         }
+
+        /// <summary>
+        /// Deletes all shifts for a specific user in a single database operation.
+        /// This is more efficient than deleting shifts one by one as it performs
+        /// a bulk delete operation directly in the database.
+        /// </summary>
+        /// <param name="userId">The ID of the user whose shifts should be deleted.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public async Task DeleteShiftsByUserIdAsync(string userId)
+        {
+            await _context.Shifts
+                .Where(s => s.UserId == userId)
+                .ExecuteDeleteAsync();
+        }
     }
 }

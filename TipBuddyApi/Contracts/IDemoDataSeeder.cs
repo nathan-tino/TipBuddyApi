@@ -6,5 +6,6 @@ namespace TipBuddyApi.Contracts
     {
         Task SeedDemoDataAsync();
         Task ResetDemoUserAsync();
+        Task ResetDemoUserShiftsAsync();
     }
 }
