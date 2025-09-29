@@ -377,7 +377,7 @@ namespace TipBuddyApi.Tests.Services
                 logger => logger.Log(
                     expectedLogLevel,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains(expectedMessage)),
+                    It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains(expectedMessage)),
                     It.IsAny<Exception>(),
                     (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
                 Times.Once);

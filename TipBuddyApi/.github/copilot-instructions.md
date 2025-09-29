@@ -22,3 +22,8 @@
 ## Migration Best Practices
 
 - Always use the migrationBuilder.RenameXYZ methods (e.g., RenameTable, RenameColumn) for renaming tables or columns in migrations instead of using raw SQL statements like EXEC sp_rename. This ensures type safety and better compatibility with Entity Framework Core.
+
+# Coding Standards
+
+- Always use curly braces for if, else, and else if statements
+- Use braces even for single-line statements

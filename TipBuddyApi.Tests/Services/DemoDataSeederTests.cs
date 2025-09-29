@@ -230,18 +230,10 @@ namespace TipBuddyApi.Tests.Services
             // indirectly through the behavior of the seeding methods
             
             Assert.True(expectedProbability >= 0.0 && expectedProbability <= 1.0);
-            
-            // We can verify the day of week logic is correctly applied
-            var isWeekend = dayOfWeek == DayOfWeek.Friday || dayOfWeek == DayOfWeek.Saturday || dayOfWeek == DayOfWeek.Sunday;
-            var isMidWeek = dayOfWeek == DayOfWeek.Wednesday || dayOfWeek == DayOfWeek.Thursday;
-            var isEarlyWeek = dayOfWeek == DayOfWeek.Monday || dayOfWeek == DayOfWeek.Tuesday;
-            
-            if (isWeekend)
-                Assert.Equal(0.90, expectedProbability);
-            else if (isMidWeek)
-                Assert.Equal(0.75, expectedProbability);
-            else if (isEarlyWeek)
-                Assert.Equal(0.10, expectedProbability);
+
+            // Verify the expected probability matches the known business rules
+            var actualExpectedProbability = GetExpectedProbabilityForDay(dayOfWeek);
+            Assert.Equal(expectedProbability, actualExpectedProbability);
         }
 
         [Fact]
@@ -388,28 +380,32 @@ namespace TipBuddyApi.Tests.Services
         }
 
         [Fact]
-        public async Task SeedShiftsForDates_WhenEmptyDatesList_LogsNoDateMessage()
+        public async Task SeedDemoDataAsync_WhenNoShiftsAndNoGap_LogsNoDateMessage()
         {
             // Arrange
-            // This scenario tests when SeedShiftsForDates is called with an empty list
-            // Use reflection to access the private SeedShiftsForDates method for direct testing
-            var seedShiftsForDatesMethod = typeof(DemoDataSeeder).GetMethod("SeedShiftsForDates", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            
-            Assert.NotNull(seedShiftsForDatesMethod);
+            var futureShift = new Shift
+            {
+                Id = "future-shift",
+                UserId = _demoUser.Id,
+                Date = new DateTimeOffset(_testDate.AddDays(1), TimeSpan.Zero), // Tomorrow (future date)
+                CreditTips = 100,
+                CashTips = 50,
+                Tipout = 5,
+                HoursWorked = 8
+            };
 
-            var emptyDatesList = new List<DateTime>();
+            _userManagerMock.Setup(x => x.FindByNameAsync(DemoUserName))
+                .ReturnsAsync(_demoUser);
+
+            SetupGetShiftsAsync(_demoUser.Id, [futureShift]);
 
             // Act
-            var task = (Task)seedShiftsForDatesMethod.Invoke(_demoDataSeeder, [_demoUser.Id, emptyDatesList])!;
-            await task;
+            await _demoDataSeeder.SeedDemoDataAsync();
 
             // Assert
-            // Verify that the "No dates to seed" message is logged
-            VerifyLoggerWasCalled(LogLevel.Information, "No dates to seed");
-            
-            // Verify that no shifts are added to the repository
+            // When most recent shift is in the future, no gap exists, so no dates to seed
             _shiftsRepositoryMock.Verify(x => x.AddAsync(It.IsAny<Shift>()), Times.Never);
+            VerifyLoggerWasCalled(LogLevel.Information, "No gap detected");
         }
 
         [Theory]
@@ -451,6 +447,17 @@ namespace TipBuddyApi.Tests.Services
             VerifyLoggerWasCalled(LogLevel.Information, "Starting demo data seeding");
         }
 
+        private static double GetExpectedProbabilityForDay(DayOfWeek dayOfWeek)
+        {
+            return dayOfWeek switch
+            {
+                DayOfWeek.Monday or DayOfWeek.Tuesday => 0.10,
+                DayOfWeek.Wednesday or DayOfWeek.Thursday => 0.75,
+                DayOfWeek.Friday or DayOfWeek.Saturday or DayOfWeek.Sunday => 0.90,
+                _ => throw new ArgumentOutOfRangeException(nameof(dayOfWeek))
+            };
+        }
+
         private void SetupGetShiftsAsync(string userId, List<Shift> shifts)
         {
             _shiftsRepositoryMock.Setup(x => x.GetShiftsAsync(userId, null, null))
@@ -469,7 +476,7 @@ namespace TipBuddyApi.Tests.Services
                 logger => logger.Log(
                     expectedLogLevel,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains(expectedMessage)),
+                    It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains(expectedMessage)),
                     It.IsAny<Exception>(),
                     (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
                 Times.Once);

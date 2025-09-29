@@ -272,9 +272,13 @@ namespace TipBuddyApi.Services
             
             // Second shift starts at least 1 hour after first ends
             var firstEnd = firstStart.Add(TimeSpan.FromHours(firstDuration));
-            var breakDurationHours = MinimumBreakBetweenShiftsHours + random.NextDouble() * (MaximumBreakBetweenShiftsHours - MinimumBreakBetweenShiftsHours);
-            var secondStart = firstEnd.Add(TimeSpan.FromHours(breakDurationHours)); // 1-3 hour gap
-            
+
+            // Generate realistic break duration with fractional hours (e.g., 1.5, 2.25 hours) for natural scheduling
+            var breakDurationHours = MinimumBreakBetweenShiftsHours
+                + random.NextDouble() * (MaximumBreakBetweenShiftsHours - MinimumBreakBetweenShiftsHours);
+
+            var secondStart = firstEnd.Add(TimeSpan.FromHours(breakDurationHours)); // 1-3 hour gap with fractional precision
+
             // Calculate duration for second shift
             var secondDuration = CalculateSecondShiftDuration(firstDuration, secondStart, random);
             
@@ -310,10 +314,10 @@ namespace TipBuddyApi.Services
             // Calculate max duration for second shift (total max 12 hours)
             var maxSecondDuration = Math.Min(MaximumSingleShiftDurationHours, MaximumDailyHours - firstDuration);
 
-            // Check to see if maxSecondDuration is at least the minimum + 1 to allow for randomization
-            var secondDuration = (maxSecondDuration + 1 > MinimumShiftDurationHours) 
-                ? random.Next(MinimumShiftDurationHours, maxSecondDuration + 1) // If it is, then pick a random duration
-                : MinimumShiftDurationHours; // If not, just use the minimum
+            var secondDuration = random.Next(
+                MinimumShiftDurationHours,
+                Math.Max(MinimumShiftDurationHours, maxSecondDuration + 1)
+            );
 
             // Ensure second shift ends before midnight
             var secondEnd = secondStart.Add(TimeSpan.FromHours(secondDuration));
