@@ -129,8 +129,11 @@ namespace TipBuddyApi.Tests.Controllers
         [Fact]
         public async Task PostShift_ReturnsCreatedAtAction()
         {
+            var userId = "user1";
+            SetUser(userId); // Set up user context
+            
             var dto = new CreateShiftDto();
-            var shift = new Shift { Id = "1", UserId = "userId" };
+            var shift = new Shift { Id = "1", UserId = userId };
             var getDto = new GetShiftDto { Id = "1" };
 
             _mapperMock.Setup(m => m.Map<Shift>(dto)).Returns(shift);

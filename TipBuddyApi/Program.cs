@@ -10,6 +10,7 @@ using TipBuddyApi.Contracts;
 using TipBuddyApi.Converters;
 using TipBuddyApi.Data;
 using TipBuddyApi.Repository;
+using TipBuddyApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -87,7 +88,19 @@ builder.Services.AddAutoMapper(cfg =>
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IShiftsRepository, ShiftsRepository>();
 
+// Services
+builder.Services.AddScoped<ITimeZoneService, TimeZoneService>();
+builder.Services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
+
 var app = builder.Build();
+
+// Seed demo user
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var demoDataSeeder = services.GetRequiredService<IDemoDataSeeder>();
+    await demoDataSeeder.SeedDemoDataAsync();
+}
 
 // Extract JWT from cookie and set Authorization header
 app.Use(async (context, next) =>
