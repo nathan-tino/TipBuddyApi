@@ -94,11 +94,15 @@ namespace TipBuddyApi.Controllers
                         ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
             if (string.IsNullOrEmpty(userId))
+            {
                 return Unauthorized();
+            }
 
             var user = await userManager.FindByIdAsync(userId);
             if (user == null)
+            {
                 return Unauthorized();
+            }
 
             string? token = Request.Cookies["access_token"];
             DateTimeOffset? issuedAt = null;

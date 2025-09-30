@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using TipBuddyApi.Contracts;
 using TipBuddyApi.Controllers;
@@ -23,16 +24,13 @@ namespace TipBuddyApi.Tests.Controllers
             _controller = new ShiftsController(_repoMock.Object, _mapperMock.Object);
         }
 
-        private void SetUser(string userId)
+        private void SetUser(params Claim[] claims)
         {
-            var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, userId)
-            }));
+            var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuthType"));
             _controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext { User = user }
-            };
+            };        
         }
 
         [Fact]
@@ -43,19 +41,33 @@ namespace TipBuddyApi.Tests.Controllers
         }
 
         [Fact]
-        public async Task GetShifts_ReturnsMappedShifts()
+        public async Task GetShifts_UsesNameIdentifierClaim_WhenAvailable()
         {
             var userId = "user1";
-            SetUser(userId);
+            SetUser(new Claim(ClaimTypes.NameIdentifier, userId));
             var shifts = new List<Shift> { new Shift { Id = "1", UserId = userId } };
             var dtos = new List<GetShiftDto> { new GetShiftDto { Id = "1" } };
 
-            _repoMock.Setup(r => r.GetShiftsAsync("user1", null, null)).ReturnsAsync(shifts);
+            _repoMock.Setup(r => r.GetShiftsAsync(userId, null, null)).ReturnsAsync(shifts);
             _mapperMock.Setup(m => m.Map<List<GetShiftDto>>(shifts)).Returns(dtos);
 
             var result = await _controller.GetShifts();
-            var okResult = Assert.IsType<ActionResult<IEnumerable<GetShiftDto>>>(result);
-            Assert.Equal(dtos, okResult.Value);
+            Assert.Equal(dtos, result.Value);
+        }
+
+        [Fact]
+        public async Task GetShifts_FallsBackToSubClaim_WhenNameIdentifierMissing()
+        {
+            var userId = "user-sub";
+            SetUser(new Claim(JwtRegisteredClaimNames.Sub, userId));
+            var shifts = new List<Shift> { new Shift { Id = "1", UserId = userId } };
+            var dtos = new List<GetShiftDto> { new GetShiftDto { Id = "1" } };
+
+            _repoMock.Setup(r => r.GetShiftsAsync(userId, null, null)).ReturnsAsync(shifts);
+            _mapperMock.Setup(m => m.Map<List<GetShiftDto>>(shifts)).Returns(dtos);
+
+            var result = await _controller.GetShifts();
+            Assert.Equal(dtos, result.Value);
         }
 
         [Fact]
@@ -87,13 +99,9 @@ namespace TipBuddyApi.Tests.Controllers
         }
 
         [Fact]
-        public async Task GetShifts_ReturnsUnauthorized_IfUserHasNoNameIdentifierClaim()
+        public async Task GetShifts_ReturnsUnauthorized_IfUserHasNoClaims()
         {
-            var user = new ClaimsPrincipal(new ClaimsIdentity()); // No claims
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext { User = user }
-            };
+            SetUser();
             var result = await _controller.GetShifts();
             Assert.IsType<UnauthorizedResult>(result.Result);
         }
@@ -130,8 +138,8 @@ namespace TipBuddyApi.Tests.Controllers
         public async Task PostShift_ReturnsCreatedAtAction()
         {
             var userId = "user1";
-            SetUser(userId); // Set up user context
-            
+            SetUser(new Claim(ClaimTypes.NameIdentifier, userId));
+
             var dto = new CreateShiftDto();
             var shift = new Shift { Id = "1", UserId = userId };
             var getDto = new GetShiftDto { Id = "1" };
