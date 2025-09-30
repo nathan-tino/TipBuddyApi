@@ -124,6 +124,7 @@ namespace TipBuddyApi.Controllers
             }
 
             var roles = await userManager.GetRolesAsync(user);
+            var isDemo = string.Equals(user.UserName, DemoUserName, StringComparison.OrdinalIgnoreCase);
 
             return Ok(new
             {
@@ -132,7 +133,8 @@ namespace TipBuddyApi.Controllers
                 email = user.Email,
                 roles,
                 issuedAt,
-                expiresAt
+                expiresAt,
+                isDemo
             });
         }
 
