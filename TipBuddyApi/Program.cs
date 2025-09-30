@@ -44,7 +44,21 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+        ClockSkew = TimeSpan.Zero
+    };
+
+    // Read JWT from the HttpOnly cookie
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            if (context.Request.Cookies.TryGetValue("access_token", out var token))
+            {
+                context.Token = token;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -101,17 +115,6 @@ using (var scope = app.Services.CreateScope())
     var demoDataSeeder = services.GetRequiredService<IDemoDataSeeder>();
     await demoDataSeeder.SeedDemoDataAsync();
 }
-
-// Extract JWT from cookie and set Authorization header
-app.Use(async (context, next) =>
-{
-    var token = context.Request.Cookies["access_token"];
-    if (!string.IsNullOrEmpty(token))
-    {
-        context.Request.Headers["Authorization"] = $"Bearer {token}";
-    }
-    await next();
-});
 
 // Use CORS policy
 app.UseCors("AllowAngularApp");
