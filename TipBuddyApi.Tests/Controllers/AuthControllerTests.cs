@@ -232,17 +232,14 @@ namespace TipBuddyApi.Tests.Controllers
 
             var result = await _controller.Me();
             var ok = Assert.IsType<OkObjectResult>(result);
-
-            // Serialize anonymous object to JSON to assert fields
-            var json = JsonSerializer.Serialize(ok.Value);
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            Assert.Equal("u1", root.GetProperty("id").GetString());
-            Assert.Equal("alice", root.GetProperty("userName").GetString());
-            Assert.Equal("a@a.com", root.GetProperty("email").GetString());
-            Assert.True(root.TryGetProperty("issuedAt", out _));
-            Assert.True(root.TryGetProperty("expiresAt", out _));
-            Assert.False(root.GetProperty("isDemo").GetBoolean());
+            var dto = Assert.IsType<MeResponseDto>(ok.Value);
+            Assert.Equal("u1", dto.Id);
+            Assert.Equal("alice", dto.UserName);
+            Assert.Equal("a@a.com", dto.Email);
+            Assert.Contains("User", dto.Roles);
+            Assert.NotNull(dto.IssuedAt);
+            Assert.NotNull(dto.ExpiresAt);
+            Assert.False(dto.IsDemo);
         }
 
         [Fact]
@@ -259,10 +256,8 @@ namespace TipBuddyApi.Tests.Controllers
 
             var result = await _controller.Me();
             var ok = Assert.IsType<OkObjectResult>(result);
-            var json = JsonSerializer.Serialize(ok.Value);
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            Assert.Equal("u2", root.GetProperty("id").GetString());
+            var dto = Assert.IsType<MeResponseDto>(ok.Value);
+            Assert.Equal("u2", dto.Id);
         }
 
         [Fact]
@@ -279,11 +274,8 @@ namespace TipBuddyApi.Tests.Controllers
 
             var result = await _controller.Me();
             var ok = Assert.IsType<OkObjectResult>(result);
-            var json = JsonSerializer.Serialize(ok.Value);
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            var expiresAt = root.GetProperty("expiresAt").GetDateTime();
-            Assert.True(expiresAt.ToUniversalTime() >= now.AddMinutes(10));
+            var dto = Assert.IsType<MeResponseDto>(ok.Value);
+            Assert.True(dto.ExpiresAt?.ToUniversalTime() >= now.AddMinutes(10));
         }
 
         [Fact]
@@ -299,10 +291,8 @@ namespace TipBuddyApi.Tests.Controllers
 
             var result = await _controller.Me();
             var ok = Assert.IsType<OkObjectResult>(result);
-            var json = JsonSerializer.Serialize(ok.Value);
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            Assert.True(root.GetProperty("isDemo").GetBoolean());
+            var dto = Assert.IsType<MeResponseDto>(ok.Value);
+            Assert.True(dto.IsDemo);
         }
 
         // New tests for Logout endpoint
@@ -316,7 +306,7 @@ namespace TipBuddyApi.Tests.Controllers
             var result = _controller.Logout();
 
             // Assert
-            var ok = Assert.IsType<OkObjectResult>(result);
+            Assert.IsType<OkObjectResult>(result);
             var headers = _controller.ControllerContext.HttpContext.Response.Headers;
             Assert.True(headers.TryGetValue("Set-Cookie", out var values));
             var cookieHeader = values.FirstOrDefault(v => v.Contains("access_token="));
@@ -352,7 +342,7 @@ namespace TipBuddyApi.Tests.Controllers
             var result = controller.Logout();
 
             // Assert
-            var ok = Assert.IsType<OkObjectResult>(result);
+            Assert.IsType<OkObjectResult>(result);
             var headers = controller.ControllerContext.HttpContext.Response.Headers;
             Assert.True(headers.TryGetValue("Set-Cookie", out var values));
             var cookieHeader = values.FirstOrDefault(v => v.Contains("access_token="));

@@ -18,6 +18,7 @@ namespace TipBuddyApi.Controllers
     {
         private const string DemoUserName = "demouser";
         private const int AccessTokenMinutes = 15;
+        private const int SlidingRefreshMinutes = 5;
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
@@ -45,8 +46,6 @@ namespace TipBuddyApi.Controllers
             var cookieOptions = GetAccessTokenCookieOptions(DateTimeOffset.UtcNow.AddMinutes(AccessTokenMinutes));
             Response.Cookies.Append("access_token", accessToken, cookieOptions);
 
-            // TODO: Implement refresh token support in the future for better session management
-
             return Ok(new { message = "Login successful" });
         }
 
@@ -58,7 +57,7 @@ namespace TipBuddyApi.Controllers
             {
                 // Seed demo data if demo user doesn't exist
                 await demoDataSeeder.SeedDemoDataAsync();
-                
+
                 // Try to find the demo user again after seeding
                 demoUser = await userManager.FindByNameAsync(DemoUserName);
                 if (demoUser == null)
@@ -90,9 +89,7 @@ namespace TipBuddyApi.Controllers
         [HttpGet("me")]
         public async Task<IActionResult> Me()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                        ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
-
+            var userId = GetUserIdFromClaims(User);
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
@@ -104,6 +101,21 @@ namespace TipBuddyApi.Controllers
                 return Unauthorized();
             }
 
+            var (issuedAt, expiresAt) = HandleJwtAndSlidingRefresh(user);
+            var roles = await userManager.GetRolesAsync(user);
+            var isDemo = string.Equals(user.UserName, DemoUserName, StringComparison.OrdinalIgnoreCase);
+
+            return Ok(new MeResponseDto(user, roles, issuedAt, expiresAt, isDemo));
+        }
+
+        private string? GetUserIdFromClaims(ClaimsPrincipal user)
+        {
+            return user.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? user.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        }
+
+        private (DateTimeOffset? issuedAt, DateTimeOffset? expiresAt) HandleJwtAndSlidingRefresh(User user)
+        {
             string? token = Request.Cookies["access_token"];
             DateTimeOffset? issuedAt = null;
             DateTimeOffset? expiresAt = null;
@@ -115,8 +127,8 @@ namespace TipBuddyApi.Controllers
                 issuedAt = jwt.ValidFrom;
                 expiresAt = jwt.ValidTo;
 
-                // Optional sliding refresh: extend token if <5 min left
-                if (expiresAt.HasValue && expiresAt.Value.UtcDateTime - DateTime.UtcNow < TimeSpan.FromMinutes(5))
+                // Optional sliding refresh: extend token if below threshold
+                if (expiresAt.HasValue && expiresAt.Value.UtcDateTime - DateTime.UtcNow < TimeSpan.FromMinutes(SlidingRefreshMinutes))
                 {
                     var refreshed = GenerateJwtToken(user);
                     Response.Cookies.Append("access_token", refreshed, GetAccessTokenCookieOptions(DateTimeOffset.UtcNow.AddMinutes(AccessTokenMinutes)));
@@ -126,20 +138,7 @@ namespace TipBuddyApi.Controllers
                     expiresAt = newJwt.ValidTo;
                 }
             }
-
-            var roles = await userManager.GetRolesAsync(user);
-            var isDemo = string.Equals(user.UserName, DemoUserName, StringComparison.OrdinalIgnoreCase);
-
-            return Ok(new
-            {
-                id = user.Id,
-                userName = user.UserName,
-                email = user.Email,
-                roles,
-                issuedAt,
-                expiresAt,
-                isDemo
-            });
+            return (issuedAt, expiresAt);
         }
 
         private CookieOptions GetAccessTokenCookieOptions(DateTimeOffset expires)
@@ -164,13 +163,15 @@ namespace TipBuddyApi.Controllers
 
         private string GenerateJwtToken(User user)
         {
+            var preferredName = user.UserName ?? user.Email ?? string.Empty;
+
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
                 new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
-                new Claim(ClaimTypes.Name, user.UserName ?? user.Email ?? string.Empty),
-                new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName ?? user.Email ?? string.Empty)
+                new Claim(ClaimTypes.Name, preferredName),
+                new Claim(JwtRegisteredClaimNames.UniqueName, preferredName)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
