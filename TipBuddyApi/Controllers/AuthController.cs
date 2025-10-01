@@ -128,7 +128,7 @@ namespace TipBuddyApi.Controllers
                 expiresAt = jwt.ValidTo;
 
                 // Optional sliding refresh: extend token if below threshold
-                if (expiresAt.HasValue && expiresAt.Value.UtcDateTime - DateTime.UtcNow < TimeSpan.FromMinutes(SlidingRefreshMinutes))
+                if (expiresAt.HasValue && expiresAt.Value.UtcDateTime - DateTimeOffset.UtcNow < TimeSpan.FromMinutes(SlidingRefreshMinutes))
                 {
                     var refreshed = GenerateJwtToken(user);
                     Response.Cookies.Append("access_token", refreshed, GetAccessTokenCookieOptions(DateTimeOffset.UtcNow.AddMinutes(AccessTokenMinutes)));
