@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 using TipBuddyApi.Contracts;
 using TipBuddyApi.Data;
 using TipBuddyApi.Dtos.Shift;
@@ -122,7 +123,8 @@ namespace TipBuddyApi.Controllers
 
         private string? GetUserId()
         {
-            return User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return User?.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User?.FindFirstValue(JwtRegisteredClaimNames.Sub);
         }
     }
 }

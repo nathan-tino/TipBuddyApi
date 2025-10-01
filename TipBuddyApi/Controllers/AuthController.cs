@@ -17,6 +17,8 @@ namespace TipBuddyApi.Controllers
     public class AuthController(UserManager<User> userManager, IConfiguration configuration, IMapper mapper, IWebHostEnvironment env, IDemoDataSeeder demoDataSeeder) : ControllerBase
     {
         private const string DemoUserName = "demouser";
+        private const int AccessTokenMinutes = 15;
+        private const int SlidingRefreshMinutes = 5;
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
@@ -41,10 +43,8 @@ namespace TipBuddyApi.Controllers
 
             var accessToken = GenerateJwtToken(user);
 
-            var cookieOptions = GetAccessTokenCookieOptions(DateTimeOffset.Now.AddMinutes(15));
+            var cookieOptions = GetAccessTokenCookieOptions(DateTimeOffset.UtcNow.AddMinutes(AccessTokenMinutes));
             Response.Cookies.Append("access_token", accessToken, cookieOptions);
-
-            // TODO: Implement refresh token support in the future for better session management
 
             return Ok(new { message = "Login successful" });
         }
@@ -57,7 +57,7 @@ namespace TipBuddyApi.Controllers
             {
                 // Seed demo data if demo user doesn't exist
                 await demoDataSeeder.SeedDemoDataAsync();
-                
+
                 // Try to find the demo user again after seeding
                 demoUser = await userManager.FindByNameAsync(DemoUserName);
                 if (demoUser == null)
@@ -68,7 +68,7 @@ namespace TipBuddyApi.Controllers
 
             var accessToken = GenerateJwtToken(demoUser);
 
-            var cookieOptions = GetAccessTokenCookieOptions(DateTimeOffset.Now.AddMinutes(15));
+            var cookieOptions = GetAccessTokenCookieOptions(DateTimeOffset.UtcNow.AddMinutes(AccessTokenMinutes));
             Response.Cookies.Append("access_token", accessToken, cookieOptions);
 
             return Ok(new { message = "Demo login successful" });
@@ -85,26 +85,93 @@ namespace TipBuddyApi.Controllers
             return Ok(new { message = "Logout successful" });
         }
 
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> Me()
+        {
+            var userId = GetUserIdFromClaims(User);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var (issuedAt, expiresAt) = HandleJwtAndSlidingRefresh(user);
+            var roles = await userManager.GetRolesAsync(user);
+            var isDemo = string.Equals(user.UserName, DemoUserName, StringComparison.OrdinalIgnoreCase);
+
+            return Ok(new MeResponseDto(user, roles, issuedAt, expiresAt, isDemo));
+        }
+
+        private string? GetUserIdFromClaims(ClaimsPrincipal user)
+        {
+            return user.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? user.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        }
+
+        private (DateTimeOffset? issuedAt, DateTimeOffset? expiresAt) HandleJwtAndSlidingRefresh(User user)
+        {
+            string? token = Request.Cookies["access_token"];
+            DateTimeOffset? issuedAt = null;
+            DateTimeOffset? expiresAt = null;
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                var handler = new JwtSecurityTokenHandler();
+                var jwt = handler.ReadJwtToken(token);
+                issuedAt = jwt.ValidFrom;
+                expiresAt = jwt.ValidTo;
+
+                // Optional sliding refresh: extend token if below threshold
+                if (expiresAt.HasValue && expiresAt.Value.UtcDateTime - DateTimeOffset.UtcNow < TimeSpan.FromMinutes(SlidingRefreshMinutes))
+                {
+                    var refreshed = GenerateJwtToken(user);
+                    Response.Cookies.Append("access_token", refreshed, GetAccessTokenCookieOptions(DateTimeOffset.UtcNow.AddMinutes(AccessTokenMinutes)));
+
+                    var newJwt = handler.ReadJwtToken(refreshed);
+                    issuedAt = newJwt.ValidFrom;
+                    expiresAt = newJwt.ValidTo;
+                }
+            }
+            return (issuedAt, expiresAt);
+        }
+
         private CookieOptions GetAccessTokenCookieOptions(DateTimeOffset expires)
         {
-            return new CookieOptions
+            var options = new CookieOptions
             {
                 HttpOnly = true, // Set access token as HttpOnly cookie for HTTPS frontend
                 Secure = true,
                 SameSite = SameSiteMode.Lax,
                 Path = "/",
-                Domain = env.IsDevelopment() ? "localhost" : configuration["CookieDomain"],
                 Expires = expires
             };
+
+            // Browsers reject Domain=localhost; only set in non-development
+            if (!env.IsDevelopment())
+            {
+                options.Domain = configuration["CookieDomain"];
+            }
+
+            return options;
         }
 
         private string GenerateJwtToken(User user)
         {
+            var preferredName = user.UserName ?? user.Email ?? string.Empty;
+
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName)
+                new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
+                new Claim(ClaimTypes.Name, preferredName),
+                new Claim(JwtRegisteredClaimNames.UniqueName, preferredName)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
@@ -114,7 +181,7 @@ namespace TipBuddyApi.Controllers
                 issuer: configuration["Jwt:Issuer"],
                 audience: configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(15),
+                expires: DateTime.UtcNow.AddMinutes(AccessTokenMinutes),
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
