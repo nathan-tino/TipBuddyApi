@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using System.Text;
+using System.Linq;
 using TipBuddyApi.Configuration;
 using TipBuddyApi.Contracts;
 using TipBuddyApi.Converters;
@@ -153,6 +154,62 @@ try
 
     // Use CORS policy
     app.UseCors("AllowAngularApp");
+
+    // Middleware to log incoming Cookie header (redacted) and outgoing Set-Cookie headers
+    app.Use(async (ctx, next) =>
+    {
+        var req = ctx.Request;
+
+        // Redact access_token values in incoming Cookie header
+        if (req.Headers.TryGetValue("Cookie", out var cookieHeaderValues))
+        {
+            var header = cookieHeaderValues.FirstOrDefault() ?? string.Empty;
+            var redacted = string.Join("; ", header.Split(';')
+                .Select(p =>
+                {
+                    var kv = p.Trim();
+                    var idx = kv.IndexOf('=');
+                    if (idx > 0)
+                    {
+                        var name = kv.Substring(0, idx);
+                        if (string.Equals(name, "access_token", StringComparison.OrdinalIgnoreCase))
+                            return name + "=REDACTED";
+                    }
+                    return kv;
+                }));
+
+            Log.ForContext<Program>().Information("Incoming cookies for {Method} {Path}: {Cookies}", req.Method, req.Path, redacted);
+        }
+        else
+        {
+            Log.ForContext<Program>().Information("No Cookie header for {Method} {Path}", req.Method, req.Path);
+        }
+
+        await next();
+
+        // After the response, log Set-Cookie headers (redacting access_token values)
+        if (ctx.Response.Headers.TryGetValue("Set-Cookie", out var setCookieValues))
+        {
+            var redactedSet = setCookieValues.Select(sc =>
+            {
+                var parts = sc.Split(';');
+                var first = parts.FirstOrDefault() ?? string.Empty;
+                var idx = first.IndexOf('=');
+                if (idx > 0)
+                {
+                    var name = first.Substring(0, idx);
+                    if (string.Equals(name, "access_token", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var attrs = string.Join(';', parts.Skip(1));
+                        return name + "=REDACTED;" + attrs;
+                    }
+                }
+                return sc;
+            });
+
+            Log.ForContext<Program>().Information("Outgoing Set-Cookie headers for {Method} {Path}: {SetCookies}", req.Method, req.Path, string.Join(" | ", redactedSet));
+        }
+    });
 
     app.UseAuthentication();
     app.UseAuthorization();
