@@ -14,6 +14,15 @@ using TipBuddyApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Initialize Serilog early so startup logs are captured
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
 // Add services to the container.
 
 // Connect to database
@@ -58,6 +67,31 @@ builder.Services.AddAuthentication(options =>
                 context.Token = token;
             }
             return Task.CompletedTask;
+        },
+        OnAuthenticationFailed = context =>
+        {
+            var req = context.Request;
+            var hasTokenCookie = req.Cookies.ContainsKey("access_token");
+            var userAgent = req.Headers.TryGetValue("User-Agent", out var ua) ? ua.ToString() : null;
+
+            // Log exception with structured fields for easier searching and debugging
+            Log.ForContext<Program>().Error(context.Exception,
+                "Authentication failed for {Method} {Path}. Scheme: {Scheme}. HasAccessTokenCookie: {HasTokenCookie}. UserAgent: {UserAgent}. ExceptionMessage: {ExceptionMessage}",
+                req.Method, req.Path, context.Scheme, hasTokenCookie, userAgent, context.Exception?.Message);
+
+            return Task.CompletedTask;
+        },
+        OnChallenge = context =>
+        {
+            var req = context.Request;
+            var hasTokenCookie = req.Cookies.ContainsKey("access_token");
+            var userAgent = req.Headers.TryGetValue("User-Agent", out var ua) ? ua.ToString() : null;
+
+            Log.ForContext<Program>().Warning(
+                "Authentication challenge for {Method} {Path}. Scheme: {Scheme}. Error: {Error}. ErrorDescription: {ErrorDescription}. HasAccessTokenCookie: {HasTokenCookie}. UserAgent: {UserAgent}",
+                req.Method, req.Path, context.Scheme, context.Error, context.ErrorDescription, hasTokenCookie, userAgent);
+
+            return Task.CompletedTask;
         }
     };
 });
@@ -85,13 +119,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Logger
-builder.Host.UseSerilog((context, loggerConfig) =>
-{
-    loggerConfig.WriteTo.Console() //write to console
-    .ReadFrom.Configuration(context.Configuration); //read config from addsettings.json
-});
-
 // AutoMapper
 builder.Services.AddAutoMapper(cfg =>
 {
@@ -106,34 +133,52 @@ builder.Services.AddScoped<IShiftsRepository, ShiftsRepository>();
 builder.Services.AddScoped<ITimeZoneService, TimeZoneService>();
 builder.Services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
 
+// Build and run the app inside try/catch so Serilog can capture failures
 var app = builder.Build();
 
-// Seed demo user
-using (var scope = app.Services.CreateScope())
+// Resolve logger from DI for Program
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+try
 {
-    var services = scope.ServiceProvider;
-    var demoDataSeeder = services.GetRequiredService<IDemoDataSeeder>();
-    await demoDataSeeder.SeedDemoDataAsync();
+    logger.LogInformation("Application starting up");
+
+    // Seed demo user
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        var demoDataSeeder = services.GetRequiredService<IDemoDataSeeder>();
+        await demoDataSeeder.SeedDemoDataAsync();
+    }
+
+    // Use CORS policy
+    app.UseCors("AllowAngularApp");
+
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    // Configure the HTTP request pipeline.
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    // Allow Serilog to automatically log requests
+    app.UseSerilogRequestLogging();
+
+    app.UseHttpsRedirection();
+
+    app.MapControllers();
+
+    await app.RunAsync();
 }
-
-// Use CORS policy
-app.UseCors("AllowAngularApp");
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+catch (Exception ex)
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    // Use Serilog directly for fatal errors during startup
+    Log.Fatal(ex, "Host terminated unexpectedly");
 }
-
-// Allow Serilog to automatically log requests
-app.UseSerilogRequestLogging();
-
-app.UseHttpsRedirection();
-
-app.MapControllers();
-
-app.Run();
+finally
+{
+    Log.CloseAndFlush();
+}
