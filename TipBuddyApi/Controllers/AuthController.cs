@@ -152,12 +152,6 @@ namespace TipBuddyApi.Controllers
                 Expires = expires
             };
 
-            // Browsers reject Domain=localhost; only set in non-development
-            if (!env.IsDevelopment())
-            {
-                options.Domain = configuration["CookieDomain"];
-            }
-
             return options;
         }
 

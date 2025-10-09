@@ -317,37 +317,6 @@ namespace TipBuddyApi.Tests.Controllers
             Assert.Contains("httponly", cookieHeader!, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("secure", cookieHeader!, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("samesite=lax", cookieHeader!, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("domain=", cookieHeader!, StringComparison.OrdinalIgnoreCase); // not set in Development
-        }
-
-        [Fact]
-        public void Logout_SetsDomain_InProduction()
-        {
-            // Arrange: new controller with Production env and CookieDomain
-            var envProd = new Mock<IWebHostEnvironment>();
-            envProd.Setup(e => e.EnvironmentName).Returns("Production");
-
-            var config = new Mock<IConfiguration>();
-            config.Setup(c => c["CookieDomain"]).Returns("example.com");
-            // JWT keys not required for logout
-
-            var controller = new AuthController(_userManagerMock.Object, config.Object, _mapperMock.Object, envProd.Object, _demoDataSeederMock.Object);
-            controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext()
-            };
-            controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "u1") }, "TestAuth"));
-
-            // Act
-            var result = controller.Logout();
-
-            // Assert
-            Assert.IsType<OkObjectResult>(result);
-            var headers = controller.ControllerContext.HttpContext.Response.Headers;
-            Assert.True(headers.TryGetValue("Set-Cookie", out var values));
-            var cookieHeader = values.FirstOrDefault(v => v.Contains("access_token="));
-            Assert.False(string.IsNullOrEmpty(cookieHeader));
-            Assert.Contains("domain=example.com", cookieHeader!, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
