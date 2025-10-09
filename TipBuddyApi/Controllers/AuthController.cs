@@ -147,7 +147,7 @@ namespace TipBuddyApi.Controllers
             {
                 HttpOnly = true, // Set access token as HttpOnly cookie for HTTPS frontend
                 Secure = true,
-                SameSite = SameSiteMode.Lax,
+                SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
                 Path = "/",
                 Expires = expires
             };
