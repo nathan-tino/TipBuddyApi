@@ -113,7 +113,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularApp", policy =>
     {
-        policy.WithOrigins("https://gentle-ocean-00a67ec1e.1.azurestaticapps.net")
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -133,13 +133,6 @@ builder.Services.AddScoped<IShiftsRepository, ShiftsRepository>();
 // Services
 builder.Services.AddScoped<ITimeZoneService, TimeZoneService>();
 builder.Services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
-
-// TESTING PURPOSES ONLY: Configure application cookie to have SameSite=None and Secure
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.Cookie.SameSite = SameSiteMode.None;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-});
 
 // Build and run the app inside try/catch so Serilog can capture failures
 var app = builder.Build();
