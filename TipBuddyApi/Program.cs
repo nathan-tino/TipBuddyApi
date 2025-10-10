@@ -134,6 +134,13 @@ builder.Services.AddScoped<IShiftsRepository, ShiftsRepository>();
 builder.Services.AddScoped<ITimeZoneService, TimeZoneService>();
 builder.Services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
 
+// TESTING PURPOSES ONLY: Configure application cookie to have SameSite=None and Secure
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
+
 // Build and run the app inside try/catch so Serilog can capture failures
 var app = builder.Build();
 
