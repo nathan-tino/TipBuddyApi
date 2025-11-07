@@ -17,6 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # This step automatically defines the DOTNET_ROOT environment variable.
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
