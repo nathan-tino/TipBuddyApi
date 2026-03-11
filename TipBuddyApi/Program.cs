@@ -10,6 +10,7 @@ using TipBuddyApi.Configuration;
 using TipBuddyApi.Contracts;
 using TipBuddyApi.Converters;
 using TipBuddyApi.Data;
+using TipBuddyApi.Middleware;
 using TipBuddyApi.Repository;
 using TipBuddyApi.Services;
 
@@ -38,12 +39,27 @@ builder.Services.AddIdentity<User, IdentityRole>()
     .AddEntityFrameworkStores<TipBuddyDbContext>()
     .AddDefaultTokenProviders();
 
-// Configure JWT Authentication
+// Configure Authentication with both JWT and API Key support
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = "MultiAuth";
+    options.DefaultChallengeScheme = "MultiAuth";
 })
+.AddPolicyScheme("MultiAuth", "JWT or API Key", options =>
+{
+    options.ForwardDefaultSelector = context =>
+    {
+        // Check if API key header is present
+        if (context.Request.Headers.ContainsKey(ApiKeyAuthenticationOptions.HeaderName))
+        {
+            return ApiKeyAuthenticationOptions.DefaultScheme;
+        }
+        // Otherwise use JWT
+        return JwtBearerDefaults.AuthenticationScheme;
+    };
+})
+.AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
+    ApiKeyAuthenticationOptions.DefaultScheme, options => { })
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
