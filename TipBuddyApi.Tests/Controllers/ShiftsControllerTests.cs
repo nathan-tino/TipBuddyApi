@@ -73,6 +73,7 @@ namespace TipBuddyApi.Tests.Controllers
         [Fact]
         public async Task GetShift_ReturnsNotFound_IfMissing()
         {
+            SetUser(new Claim(ClaimTypes.NameIdentifier, "userId"));
             _repoMock.Setup(r => r.GetAsync("1")).ReturnsAsync((Shift)null);
             var result = await _controller.GetShift("1");
             Assert.IsType<NotFoundResult>(result.Result);
@@ -81,10 +82,23 @@ namespace TipBuddyApi.Tests.Controllers
         [Fact]
         public async Task GetShift_ReturnsShift_IfExists()
         {
+            SetUser(new Claim(ClaimTypes.NameIdentifier, "userId"));
             var shift = new Shift { Id = "1", UserId = "userId" };
             _repoMock.Setup(r => r.GetAsync("1")).ReturnsAsync(shift);
             var result = await _controller.GetShift("1");
             Assert.Equal(shift, result.Value);
+        }
+
+        [Fact]
+        public async Task GetShift_ReturnsNotFound_IfShiftBelongsToAnotherUser()
+        {
+            SetUser(new Claim(ClaimTypes.NameIdentifier, "userId"));
+            var shift = new Shift { Id = "1", UserId = "differentUser" };
+            _repoMock.Setup(r => r.GetAsync("1")).ReturnsAsync(shift);
+
+            var result = await _controller.GetShift("1");
+
+            Assert.IsType<NotFoundResult>(result.Result);
         }
 
         [Fact]
@@ -117,6 +131,7 @@ namespace TipBuddyApi.Tests.Controllers
         [Fact]
         public async Task PutShift_ReturnsNotFound_IfShiftMissing()
         {
+            SetUser(new Claim(ClaimTypes.NameIdentifier, "userId"));
             var dto = new UpdateShiftDto { Id = "1" };
             _repoMock.Setup(r => r.GetAsync("1")).ReturnsAsync((Shift)null);
             var result = await _controller.PutShift("1", dto);
@@ -126,12 +141,27 @@ namespace TipBuddyApi.Tests.Controllers
         [Fact]
         public async Task PutShift_ReturnsNoContent_IfSuccess()
         {
+            SetUser(new Claim(ClaimTypes.NameIdentifier, "userId"));
             var dto = new UpdateShiftDto { Id = "1" };
             var shift = new Shift { Id = "1", UserId = "userId" };
             _repoMock.Setup(r => r.GetAsync("1")).ReturnsAsync(shift);
             _repoMock.Setup(r => r.UpdateAsync(shift)).Returns(Task.CompletedTask);
             var result = await _controller.PutShift("1", dto);
             Assert.IsType<NoContentResult>(result);
+        }
+
+        [Fact]
+        public async Task PutShift_ReturnsNotFound_IfShiftBelongsToAnotherUser()
+        {
+            SetUser(new Claim(ClaimTypes.NameIdentifier, "userId"));
+            var dto = new UpdateShiftDto { Id = "1" };
+            var shift = new Shift { Id = "1", UserId = "differentUser" };
+            _repoMock.Setup(r => r.GetAsync("1")).ReturnsAsync(shift);
+
+            var result = await _controller.PutShift("1", dto);
+
+            Assert.IsType<NotFoundResult>(result);
+            _repoMock.Verify(r => r.UpdateAsync(It.IsAny<Shift>()), Times.Never);
         }
 
         [Fact]
@@ -156,7 +186,8 @@ namespace TipBuddyApi.Tests.Controllers
         [Fact]
         public async Task DeleteShift_ReturnsNotFound_IfMissing()
         {
-            _repoMock.Setup(r => r.Exists("1")).ReturnsAsync(false);
+            SetUser(new Claim(ClaimTypes.NameIdentifier, "userId"));
+            _repoMock.Setup(r => r.GetAsync("1")).ReturnsAsync((Shift)null);
             var result = await _controller.DeleteShift("1");
             Assert.IsType<NotFoundResult>(result);
         }
@@ -164,7 +195,8 @@ namespace TipBuddyApi.Tests.Controllers
         [Fact]
         public async Task DeleteShift_ReturnsNoContent_IfExists()
         {
-            _repoMock.Setup(r => r.Exists("1")).ReturnsAsync(true);
+            SetUser(new Claim(ClaimTypes.NameIdentifier, "userId"));
+            _repoMock.Setup(r => r.GetAsync("1")).ReturnsAsync(new Shift { Id = "1", UserId = "userId" });
             _repoMock.Setup(r => r.DeleteAsync("1")).Returns(Task.CompletedTask);
 
             var result = await _controller.DeleteShift("1");
@@ -172,8 +204,21 @@ namespace TipBuddyApi.Tests.Controllers
         }
 
         [Fact]
+        public async Task DeleteShift_ReturnsNotFound_IfShiftBelongsToAnotherUser()
+        {
+            SetUser(new Claim(ClaimTypes.NameIdentifier, "userId"));
+            _repoMock.Setup(r => r.GetAsync("1")).ReturnsAsync(new Shift { Id = "1", UserId = "differentUser" });
+
+            var result = await _controller.DeleteShift("1");
+
+            Assert.IsType<NotFoundResult>(result);
+            _repoMock.Verify(r => r.DeleteAsync(It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
         public async Task PutShift_ReturnsNotFound_WhenDbUpdateConcurrencyException_AndShiftDoesNotExist()
         {
+            SetUser(new Claim(ClaimTypes.NameIdentifier, "userId"));
             var dto = new UpdateShiftDto { Id = "1" };
             var shift = new Shift { Id = "1", UserId = "userId" };
             _repoMock.Setup(r => r.GetAsync("1")).ReturnsAsync(shift);
@@ -187,6 +232,7 @@ namespace TipBuddyApi.Tests.Controllers
         [Fact]
         public async Task PutShift_Throws_WhenDbUpdateConcurrencyException_AndShiftExists()
         {
+            SetUser(new Claim(ClaimTypes.NameIdentifier, "userId"));
             var dto = new UpdateShiftDto { Id = "1" };
             var shift = new Shift { Id = "1", UserId = "userId" };
             _repoMock.Setup(r => r.GetAsync("1")).ReturnsAsync(shift);

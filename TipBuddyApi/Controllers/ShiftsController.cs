@@ -42,9 +42,15 @@ namespace TipBuddyApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Shift>> GetShift(string id)
         {
+            var userId = GetUserId();
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
             var shift = await _shiftsRepository.GetAsync(id);
 
-            if (shift == null)
+            if (shift == null || shift.UserId != userId)
             {
                 return NotFound();
             }
@@ -57,13 +63,19 @@ namespace TipBuddyApi.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutShift(string id, UpdateShiftDto updateShiftDto)
         {
+            var userId = GetUserId();
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
             if (!id.Equals(updateShiftDto.Id))
             {
                 return BadRequest();
             }
 
             var shift = await _shiftsRepository.GetAsync(id);
-            if (shift == null)
+            if (shift == null || shift.UserId != userId)
             {
                 return NotFound();
             }
@@ -106,7 +118,14 @@ namespace TipBuddyApi.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteShift(string id)
         {
-            if (!await ShiftExists(id))
+            var userId = GetUserId();
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var shift = await _shiftsRepository.GetAsync(id);
+            if (shift == null || shift.UserId != userId)
             {
                 return NotFound();
             }
